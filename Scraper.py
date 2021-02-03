@@ -22,6 +22,7 @@ from more_itertools import unique_everseen
 from IPython.display import clear_output
 
 from tqdm import tqdm_notebook
+
 """
 class
 """
@@ -51,20 +52,22 @@ class InstaScrape:
         self.activedriver = None
         self._links = None
 
-        post_date_l = []
-        post_user_l = []
-        post_verif_l = []
-        post_likes_l = []
-        post_tags_v_l =[]
-        post_tags_u_l = []
-        post_l = []
-        post_location_l = []
-        post_insta_classifier_l = []
-        post_link_l = []
+        self.post_date_l = []
+        self.post_user_l = []
+        self.post_verif_l = []
+        self.post_likes_l = []
+        self.post_tags_v_l = []
+        self.post_tags_u_l = []
+        self.post_l = []
+        self.post_location_l = []
+        self.post_insta_classifier_l = []
+        self.post_link_l = []
+
+        self._df = None
 
         self._listStack = [
-            post_date_l,post_user_l,post_verif_l,post_likes_l,post_tags_v_l,
-            post_tags_u_l,post_l,post_location_l,post_insta_classifier_l,post_link_l]
+            self.post_date_l, self.post_user_l, self.post_verif_l, self.post_likes_l, self.post_tags_v_l,
+            self.post_tags_u_l, self.post_l, self.post_location_l, self.post_insta_classifier_l, self.post_link_l]
 
         self._functionStack = [
             self.postDate,
@@ -261,7 +264,7 @@ class InstaScrape:
             entities.append(tag_end_point[i]['node']['user']['full_name'])
             verify.append(tag_end_point[i]['node']['user']['is_verified'])
 
-        df = pd.DataFrame({'Brand' : entities, 'Verified:' : verify})
+        df = pd.DataFrame({'Brand': entities, 'Verified:': verify})
         df = df[df.Verified == True]
 
         if len(list(df.Brand)) < 1:
@@ -278,7 +281,7 @@ class InstaScrape:
             tags.append(tag_end_point[i]['node']['user']['full_name'])
             verify.append(tag_end_point[i]['node']['user']['is_verified'])
 
-        df = pd.DataFrame({'Tag' : tags, 'Verified' : verify})
+        df = pd.DataFrame({'Tag': tags, 'Verified': verify})
         df = df[df.Verified == False]
 
         if len(list(df.Tag)) < 1:
@@ -321,29 +324,34 @@ class InstaScrape:
                     data = self.fetchJson(links[i])
                     for f in self._functionStack:
                         if f != self._functionStack[-1]:
+                            try:
+                                self._listStack[self._functionStack.index(f)].append(f(data))
+                            except:
+                                self._listStack[self._functionStack.index(f)].apped(np.nan)
+                except:
+                    pass
+            return
 
+        print("multi-threading...")
+        threads = int(input("How many threads: "))
+        print('\n')
+        print("executing...")
+        self.threadExecute(self.threadCompile(threads, self._links, extractData))
 
+        df = pd.DataFrame({'searched_for': [self.target_label] * len(self.post_l),
+                           'post_link': self.post_link_l,
+                           'post_date': self.post_date_l,
+                           'post': self.post_l,
+                           'user': self.post_user_l,
+                           'user_verified_status': self.post_verif_l,
+                           'post_likes': self.post_likes_l,
+                           'post_verified_tags': self.post_tags_v_l,
+                           'post_unverified_tags': self.post_tags_u_l,
+                           'post_location': self.post_location_l,
+                           'post_image': self.post_insta_classifier_l,
+                           })
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        df.sort_values(by='post_date', ascending=False, inplace=True)
+        df.reset_index(drop=True, inplace=True)
+        self._df = df
+        return df
